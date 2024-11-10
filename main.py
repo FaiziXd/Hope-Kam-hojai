@@ -1,84 +1,109 @@
-from flask import Flask, render_template_string, request, redirect, url_for
+from flask import Flask, render_template_string, request, redirect, url_for, session
 import json
 import os
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # ضروری ہے سیشن کے لیے
 
-# File to store user data and approvals
+# Approval data file
 data_file = 'approvals.json'
 
-# Initialize the data file if not exists
+# Initialize data file if not present
 if not os.path.exists(data_file):
     with open(data_file, 'w') as file:
         json.dump({}, file)
 
-# Route for the Home page (User enters name)
+# Home page route (for user login)
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         name = request.form['name']
         
-        # Load existing data
+        # Load approval data
         with open(data_file, 'r') as file:
             data = json.load(file)
         
-        # Check if name already exists
-        if name in data and data[name]['status'] == 'pending':
-            return render_template_string(approval_pending_html)
-        elif name in data and data[name]['status'] == 'approved':
-            return render_template_string(welcome_html)
-        else:
-            # New user, store in the database with 'pending' status
+        # Store user name in session to track them separately
+        session['user_name'] = name
+        
+        # Check user approval status
+        if name in data and data[name]['status'] == 'approved':
+            return redirect(url_for('welcome'))
+        elif name not in data:
+            # If new user, add them with 'pending' status
             data[name] = {'status': 'pending'}
             with open(data_file, 'w') as file:
                 json.dump(data, file)
-            return render_template_string(approval_pending_html)
+            return redirect(url_for('pending'))
+        else:
+            return redirect(url_for('pending'))
 
     return render_template_string(index_html)
 
-# Route for Admin Panel (to approve/reject)
+# Page for pending approval
+@app.route('/pending')
+def pending():
+    return render_template_string(approval_pending_html)
+
+# Page shown to approved users
+@app.route('/welcome')
+def welcome():
+    user_name = session.get('user_name')
+    
+    # Load approval data to check if user is approved
+    with open(data_file, 'r') as file:
+        data = json.load(file)
+    
+    if user_name in data and data[user_name]['status'] == 'approved':
+        return render_template_string(welcome_html)
+    else:
+        return redirect(url_for('pending'))
+
+# Admin login page
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    password = 'THE FAIZU'
     if request.method == 'POST':
         entered_password = request.form['password']
         
-        if entered_password == password:
+        if entered_password == 'THE FAIZU':
+            # Load approval data for admin view
             with open(data_file, 'r') as file:
                 data = json.load(file)
-            
             return render_template_string(admin_panel_html, data=data)
         else:
             return 'Incorrect Password'
 
     return render_template_string(admin_login_html)
 
-# Admin accepts or rejects the request
-@app.route('/approve/<name>', methods=['GET'])
+# Route to approve a user (admin only)
+@app.route('/approve/<name>')
 def approve(name):
     with open(data_file, 'r') as file:
         data = json.load(file)
     
     if name in data and data[name]['status'] == 'pending':
+        # Approve the user
         data[name]['status'] = 'approved'
         with open(data_file, 'w') as file:
             json.dump(data, file)
     
-    return render_template_string(welcome_html)
+    return redirect(url_for('admin'))
 
-@app.route('/reject/<name>', methods=['GET'])
+# Route to reject a user (admin only)
+@app.route('/reject/<name>')
 def reject(name):
     with open(data_file, 'r') as file:
         data = json.load(file)
     
     if name in data:
+        # Remove user entry
         del data[name]
         with open(data_file, 'w') as file:
             json.dump(data, file)
     
-    return redirect(url_for('index'))
+    return redirect(url_for('admin'))
 
-# HTML Templates
+# HTML templates
 index_html = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -106,9 +131,8 @@ approval_pending_html = '''
     <title>Approval Pending</title>
 </head>
 <body>
-    <h2>Hello, your approval is pending. Please wait.</h2>
-    <p>Your request is being reviewed by the admin.</p>
-    <p>If you are the admin, <a href="/admin">click here to enter the admin panel</a> and approve/reject.</p>
+    <h2>Your approval is pending. Please wait for admin review.</h2>
+    <p>If you are the admin, <a href="/admin">click here to enter the admin panel</a> and manage approvals.</p>
 </body>
 </html>
 '''
@@ -122,9 +146,9 @@ welcome_html = '''
     <title>Welcome to Faizu APK</title>
 </head>
 <body>
-    <h2>Welcome Dear, you are approved!</h2>
-    <p>Now you can visit the APK with full access.</p>
-    <a href="https://www.facebook.com/The.drugs.ft.chadwick.67" target="_blank">Visit</a>
+    <h2>Welcome! You are approved.</h2>
+    <p>You have lifetime access to the APK features.</p>
+    <a href="https://www.facebook.com/The.drugs.ft.chadwick.67" target="_blank">Visit Here</a>
 </body>
 </html>
 '''
@@ -161,9 +185,7 @@ admin_panel_html = '''
     <ul>
         {% for name, details in data.items() %}
             {% if details['status'] == 'pending' %}
-                <li>
-                    {{ name }} - <a href="/approve/{{ name }}">Approve</a> | <a href="/reject/{{ name }}">Reject</a>
-                </li>
+                <li>{{ name }} - <a href="/approve/{{ name }}">Approve</a> | <a href="/reject/{{ name }}">Reject</a></li>
             {% endif %}
         {% endfor %}
     </ul>
