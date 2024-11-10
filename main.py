@@ -3,17 +3,17 @@ import json
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # ضروری ہے سیشن کے لیے
+app.secret_key = 'your_secret_key'  # For session tracking
 
 # Approval data file
 data_file = 'approvals.json'
 
-# Initialize data file if not present
+# Initialize the data file if it doesn't exist
 if not os.path.exists(data_file):
     with open(data_file, 'w') as file:
         json.dump({}, file)
 
-# Home page route (for user login)
+# Route for user login
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -23,14 +23,14 @@ def index():
         with open(data_file, 'r') as file:
             data = json.load(file)
         
-        # Store user name in session to track them separately
-        session['user_name'] = name
+        session['user_name'] = name  # Track the user in the session
         
-        # Check user approval status
+        # Check approval status
         if name in data and data[name]['status'] == 'approved':
+            session['approved'] = True  # Set session for approved users
             return redirect(url_for('welcome'))
         elif name not in data:
-            # If new user, add them with 'pending' status
+            # Add new user with 'pending' status
             data[name] = {'status': 'pending'}
             with open(data_file, 'w') as file:
                 json.dump(data, file)
@@ -43,6 +43,8 @@ def index():
 # Page for pending approval
 @app.route('/pending')
 def pending():
+    if session.get('approved'):
+        return redirect(url_for('welcome'))
     return render_template_string(approval_pending_html)
 
 # Page shown to approved users
@@ -50,7 +52,7 @@ def pending():
 def welcome():
     user_name = session.get('user_name')
     
-    # Load approval data to check if user is approved
+    # Load approval data to confirm user is approved
     with open(data_file, 'r') as file:
         data = json.load(file)
     
@@ -66,7 +68,7 @@ def admin():
         entered_password = request.form['password']
         
         if entered_password == 'THE FAIZU':
-            # Load approval data for admin view
+            # Load approval data for admin panel
             with open(data_file, 'r') as file:
                 data = json.load(file)
             return render_template_string(admin_panel_html, data=data)
@@ -75,35 +77,35 @@ def admin():
 
     return render_template_string(admin_login_html)
 
-# Route to approve a user (admin only)
+# Approve user (admin only)
 @app.route('/approve/<name>')
 def approve(name):
     with open(data_file, 'r') as file:
         data = json.load(file)
     
     if name in data and data[name]['status'] == 'pending':
-        # Approve the user
+        # Update user to 'approved'
         data[name]['status'] = 'approved'
         with open(data_file, 'w') as file:
             json.dump(data, file)
     
     return redirect(url_for('admin'))
 
-# Route to reject a user (admin only)
+# Reject user (admin only)
 @app.route('/reject/<name>')
 def reject(name):
     with open(data_file, 'r') as file:
         data = json.load(file)
     
     if name in data:
-        # Remove user entry
+        # Remove the user's entry
         del data[name]
         with open(data_file, 'w') as file:
             json.dump(data, file)
     
     return redirect(url_for('admin'))
 
-# HTML templates
+# HTML Templates
 index_html = '''
 <!DOCTYPE html>
 <html lang="en">
