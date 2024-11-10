@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            margin: 20px;
+        }
+        .approval-list {
+            width: 80%;
+            margin-top: 20px;
+        }
+        .approval-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #fff;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .approval-buttons button {
+            padding: 5px 10px;
+            margin-left: 10px;
+            background-color: #ff5733;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .approval-buttons button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    <div class="approval-list">
+        {% for username, details in approvals.items() %}
+        <div class="approval-item">
+            <div>{{ username }} - Status: {{ details['status'] }}</div>
+            <div class="approval-buttons">
+                {% if details['status'] == 'pending' %}
+                <button onclick="updateApproval('{{ username }}', 'accepted')">Accept</button>
+                <button onclick="updateApproval('{{ username }}', 'rejected')">Reject</button>
+                {% else %}
+                <button disabled>{{ details['status'] | capitalize }}</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function updateApproval(username, action) {
+            fetch('/admin/update_approval', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username, action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Approval updated!');
+                location.reload(); // Refresh the page to reflect the change
+            });
+        }
+    </script>
+</body>
+</html>
