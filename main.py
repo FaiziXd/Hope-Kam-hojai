@@ -56,5 +56,5 @@ def submit_approval():
         return redirect(url_for('admin_panel'))
     return render_template('submit_approval.html')
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
