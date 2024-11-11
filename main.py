@@ -13,8 +13,16 @@ admin_password = "THE FAIZU"  # Admin password
 @app.route('/send_approval', methods=['POST'])
 def send_approval():
     user_data = request.json
-    unique_key = str(uuid.uuid4())  # Unique key generated for each user
-    approvals[unique_key] = {'status': 'pending', 'lifetime_link': None}
+    user_device = user_data.get("device_name", "Unknown")
+    
+    # Check if the user already has a pending approval
+    for key, approval in approvals.items():
+        if approval['device_name'] == user_device and approval['status'] == 'pending':
+            return jsonify({"message": "Your key is already pending", "key": key})
+
+    # Create a new unique key for the user
+    unique_key = str(uuid.uuid4())
+    approvals[unique_key] = {'status': 'pending', 'lifetime_link': None, 'device_name': user_device}
     return jsonify({"message": "Approval request sent", "key": unique_key})
 
 # Route to check approval status for the user
@@ -100,16 +108,18 @@ def index():
         
         <script>
             function sendApproval() {
+                // Ask for device name to track pending approvals
+                const deviceName = prompt("Please enter your device name:");
                 fetch('/send_approval', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({}) // empty object as example
+                    body: JSON.stringify({ "device_name": deviceName })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('status').textContent = "Approval Request Sent. Your Key: " + data.key;
+                    document.getElementById('status').textContent = data.message + " Your Key: " + data.key;
                 });
             }
 
