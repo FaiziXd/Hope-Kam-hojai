@@ -3,6 +3,11 @@ import uuid
 
 app = Flask(__name__)
 
+# Default route to indicate that the app is running
+@app.route('/')
+def home():
+    return jsonify({"message": "App is running"}), 200
+
 # Approval request handling route
 @app.route('/send_approval', methods=['POST'])
 def send_approval():
