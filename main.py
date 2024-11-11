@@ -54,9 +54,6 @@ def index():
             .button:hover {
                 background-color: #45a049;
             }
-            .checkbox-container {
-                margin-top: 20px;
-            }
         </style>
     </head>
     <body>
@@ -65,12 +62,6 @@ def index():
         <button class="button" onclick="sendApproval()">Send Approval Request</button>
         <br><br>
         <p id="status"></p>
-        
-        <div class="checkbox-container" id="approvalStatusContainer" style="display: none;">
-            <input type="checkbox" id="approvalCheckbox" onclick="checkApprovalStatus()"> Check Approval Status
-            <p id="approvalMessage"></p>
-        </div>
-        
         <script>
             function sendApproval() {
                 fetch('/send_approval', {
@@ -78,25 +69,11 @@ def index():
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({})
+                    body: JSON.stringify({}) // empty object as example
                 })
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('status').textContent = "Approval Request Sent. Your Key: " + data.key;
-                    document.getElementById('approvalStatusContainer').style.display = 'block';
-                });
-            }
-            
-            function checkApprovalStatus() {
-                const key = document.getElementById('status').textContent.split(": ")[1]; // Get the key from the status text
-                fetch('/check_approval/' + key)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === "approved") {
-                        document.getElementById('approvalMessage').innerHTML = "Your approval is granted! Here is your link: <a href='" + data.lifetime_link + "'>Click Here</a>";
-                    } else {
-                        document.getElementById('approvalMessage').textContent = "Your approval is still pending.";
-                    }
                 });
             }
         </script>
@@ -226,7 +203,7 @@ def admin_dashboard():
 def approve_request(key):
     if key in approvals and approvals[key]['status'] == 'pending':
         approvals[key]['status'] = 'approved'
-        approvals[key]['lifetime_link'] = f"https://your-application-link.com/{key}"  # Lifetime link for the user
+        approvals[key]['lifetime_link'] = "https://herf-2-faizu-apk.onrender.com"  # Lifetime link for the approved user
         return jsonify({"message": "Approval granted"})
     return jsonify({"message": "Approval request not found or already handled"}), 404
 
