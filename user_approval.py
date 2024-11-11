@@ -14,5 +14,5 @@ def send_approval():
 def generate_unique_key(user_data):
     return str(uuid.uuid4())  # Generates a unique key for each request
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
