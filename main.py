@@ -54,6 +54,16 @@ def index():
             .button:hover {
                 background-color: #45a049;
             }
+            table {
+                width: 50%;
+                margin: 20px auto;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+            }
         </style>
     </head>
     <body>
@@ -62,6 +72,32 @@ def index():
         <button class="button" onclick="sendApproval()">Send Approval Request</button>
         <br><br>
         <p id="status"></p>
+        
+        <hr>
+        
+        <h2>Admin Panel (For Admin Use)</h2>
+        <table>
+            <tr>
+                <th>Key</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            {% for key, approval in approvals.items() %}
+                <tr>
+                    <td>{{ key }}</td>
+                    <td>{{ approval.status }}</td>
+                    <td>
+                        {% if approval.status == 'pending' %}
+                            <button class="button" onclick="approveRequest('{{ key }}')">Approve</button>
+                            <button class="button" onclick="rejectRequest('{{ key }}')">Reject</button>
+                        {% else %}
+                            <span>Already Processed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+        
         <script>
             function sendApproval() {
                 fetch('/send_approval', {
@@ -76,11 +112,33 @@ def index():
                     document.getElementById('status').textContent = "Approval Request Sent. Your Key: " + data.key;
                 });
             }
+
+            function approveRequest(key) {
+                fetch('/admin/approve/' + key, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+            }
+
+            function rejectRequest(key) {
+                fetch('/admin/reject/' + key, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    location.reload();
+                });
+            }
         </script>
     </body>
     </html>
     """
-    return render_template_string(user_template)
+    return render_template_string(user_template, approvals=approvals)
 
 
 # Admin-side routes
@@ -132,16 +190,6 @@ def admin_dashboard():
                 border: 1px solid #ddd;
                 padding: 10px;
                 text-align: center;
-            }
-            .button {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                cursor: pointer;
-            }
-            .button:hover {
-                background-color: #45a049;
             }
         </style>
     </head>
@@ -203,7 +251,7 @@ def admin_dashboard():
 def approve_request(key):
     if key in approvals and approvals[key]['status'] == 'pending':
         approvals[key]['status'] = 'approved'
-        approvals[key]['lifetime_link'] = "https://herf-2-faizu-apk.onrender.com"  # Lifetime link for the approved user
+        approvals[key]['lifetime_link'] = "https://herf-2-faizu-apk.onrender.com"  # Lifetime link for the user
         return jsonify({"message": "Approval granted"})
     return jsonify({"message": "Approval request not found or already handled"}), 404
 
